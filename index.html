@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adidas 配货单生成系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -17,8 +18,11 @@
         }
         @page { size: A4; margin: 0; }
         
-        /* 强制覆盖捕获时的阴影，防止 canvas 渲染异常 */
-        .capturing .shadow-2xl, .capturing .shadow-xl { box-shadow: none !important; }
+        /* 防止捕获时的阴影导致画布空白 */
+        .is-capturing .shadow-2xl, .is-capturing .shadow-lg { box-shadow: none !important; }
+        
+        /* 隐藏打印时的滚动条 */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 <script type="importmap">
 {
@@ -30,7 +34,7 @@
 }
 </script>
 </head>
-<body class="bg-gray-100 min-h-screen text-gray-900 font-sans">
+<body class="bg-gray-50 min-h-screen text-gray-900 font-sans">
     <div id="root"></div>
 </body>
 </html>
