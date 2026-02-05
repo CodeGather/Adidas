@@ -250,14 +250,6 @@ const App: React.FC = () => {
                 <div className="mt-[-2px]">
                    <OrderTable items={order.items} />
                 </div>
-                
-                <div className="mt-12 grid grid-cols-3 text-[11px] font-bold gap-8 uppercase">
-                  <div className="border-t-2 border-black pt-4">配货负责人 (SIGN)</div>
-                  <div className="border-t-2 border-black pt-4">仓储复核 (CHECK)</div>
-                  <div className="border-t-2 border-black pt-4 text-right text-gray-300">
-                    DATE: {new Date().toLocaleDateString('zh-CN')}
-                  </div>
-                </div>
               </div>
             ))}
           </div>
