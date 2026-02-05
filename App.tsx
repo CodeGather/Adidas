@@ -200,16 +200,16 @@ const App: React.FC = () => {
               <button onClick={reset} className="px-6 py-3 border-2 border-black rounded-2xl font-black text-sm hover:bg-black hover:text-white transition-all">重新上传</button>
               <button onClick={() => window.print()} className="px-6 py-3 bg-black text-white rounded-2xl font-black text-sm hover:bg-gray-800 transition-all shadow-lg flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                打印全部
+                打印配货单 (不含目录)
               </button>
             </div>
           </div>
 
           <div id="pdf-content" className="flex flex-col gap-10">
-            {/* 目录页 - 方便打印时预览，作为 PDF 的第一页 */}
+            {/* 目录页 - 仅在网页预览和导出 PDF 时显示，打印时通过 no-print 隐藏 */}
             <div 
               id="summary-page"
-              className="max-w-[210mm] mx-auto bg-white p-[20mm] shadow-2xl print:shadow-none order-page"
+              className="max-w-[210mm] mx-auto bg-white p-[20mm] shadow-2xl print:shadow-none order-page no-print"
               style={{ width: '210mm', minHeight: '297mm' }}
             >
               <div className="border-4 border-black p-8 mb-10 text-center">
