@@ -1,0 +1,5 @@
+{
+  "name": "Adidas 配货单自动生成系统",
+  "description": "一个专业的配货单生成工具，可将 CSV 数据源自动填充到标准的 Adidas 店铺配货单模版中，支持多店铺自动分页、汇总目录及一键打印。",
+  "requestFramePermissions": []
+}
