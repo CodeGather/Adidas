@@ -41,69 +41,70 @@ const App: React.FC = () => {
   const generatePDF = async () => {
     if (orders.length === 0) return;
     
-    // 总页数 = 目录页 + 所有店铺页
     const totalPages = 1 + orders.length;
     setExporting({ active: true, current: 0, total: totalPages });
     
     const { jsPDF } = jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = doc.internal.pageSize.getWidth();
+    const pdfHeight = doc.internal.pageSize.getHeight();
     
-    // 强制进入捕获状态样式（移除阴影等干扰）
     document.body.classList.add('is-capturing');
-    // 核心修复：回到顶部确保 Canvas 捕获位置正确
     window.scrollTo(0, 0);
 
+    const addElementToPDF = async (element: HTMLElement, isFirstPage: boolean) => {
+      if (!isFirstPage) doc.addPage();
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgProps = doc.getImageProperties(imgData);
+      
+      // 核心自适应算法：确保不截断
+      let finalWidth = pdfWidth;
+      let finalHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      // 如果高度超出了 A4 页面，则缩减宽度以适应高度
+      if (finalHeight > pdfHeight) {
+        finalHeight = pdfHeight;
+        finalWidth = (imgProps.width * pdfHeight) / imgProps.height;
+      }
+
+      // 居中计算
+      const xOffset = (pdfWidth - finalWidth) / 2;
+      const yOffset = 0; // 顶部对齐
+
+      doc.addImage(imgData, 'JPEG', xOffset, yOffset, finalWidth, finalHeight);
+    };
+
     try {
-      // 1. 导出目录页作为 PDF 第一页
+      // 1. 目录页
       setExporting(prev => ({ ...prev, current: 1 }));
       const summaryElement = document.getElementById('summary-page');
       if (summaryElement) {
-        const canvas = await html2canvas(summaryElement, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff'
-        });
-        const imgData = canvas.toDataURL('image/jpeg', 0.9);
-        const imgProps = doc.getImageProperties(imgData);
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        await addElementToPDF(summaryElement, true);
       }
 
-      // 2. 逐页导出各店铺配货单
+      // 2. 店铺页
       for (let i = 0; i < orders.length; i++) {
         setExporting(prev => ({ ...prev, current: i + 2 }));
-        
         const order = orders[i];
         const element = document.getElementById(`order-page-${order.posCode}`);
         if (!element) continue;
 
-        // 给浏览器重绘时间
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff',
-          width: element.offsetWidth,
-          height: element.offsetHeight,
-          x: 0,
-          y: 0
-        });
-
-        const imgData = canvas.toDataURL('image/jpeg', 0.9);
-        const imgProps = doc.getImageProperties(imgData);
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-        doc.addPage();
-        doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await addElementToPDF(element, false);
       }
 
       doc.save(`Adidas_配货汇总_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (err) {
       console.error(err);
-      alert("PDF 生成失败，请尝试减少单次导出的店铺数量。");
+      alert("PDF 生成失败。");
     } finally {
       document.body.classList.remove('is-capturing');
       setExporting({ active: false, current: 0, total: 0 });
@@ -127,7 +128,7 @@ const App: React.FC = () => {
         
         const link = document.createElement('a');
         link.download = `Adidas_${order.posCode}_${order.posName}.jpg`;
-        link.href = canvas.toDataURL('image/jpeg', 0.9);
+        link.href = canvas.toDataURL('image/jpeg', 0.95);
         link.click();
       }
     } finally {
@@ -144,7 +145,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
-      {/* 进度遮罩 */}
       {exporting.active && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-md">
           <div className="bg-white p-12 rounded-[3rem] shadow-2xl flex flex-col items-center max-w-sm w-full text-center">
@@ -155,13 +155,12 @@ const App: React.FC = () => {
                 {Math.round((exporting.current / exporting.total) * 100)}%
               </div>
             </div>
-            <h3 className="font-black text-2xl text-black mb-2">正在导出文件</h3>
-            <p className="text-gray-400 text-sm">正在处理第 {exporting.current} / {exporting.total} 页</p>
+            <h3 className="font-black text-2xl text-black mb-2">正在处理文件</h3>
+            <p className="text-gray-400 text-sm">确保每一页都完整不截断...</p>
           </div>
         </div>
       )}
 
-      {/* 录入界面 */}
       {showInput && (
         <div className="max-w-3xl mx-auto pt-20 px-8">
           <div className="bg-white p-12 rounded-[3rem] shadow-2xl border border-gray-100 text-center">
@@ -181,32 +180,30 @@ const App: React.FC = () => {
               <div className="border-4 border-dashed border-gray-100 rounded-[2.5rem] p-16 transition-all group-hover:border-black group-hover:bg-gray-50 flex flex-col items-center">
                 <svg className="w-16 h-16 text-gray-200 group-hover:text-black mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                 <p className="text-xl font-black text-black mb-2">点击或拖拽 Excel 文件</p>
-                <p className="text-gray-400 text-sm font-medium italic">系统将自动过滤首行表头，请确保数据从第二行开始</p>
+                <p className="text-gray-400 text-sm font-medium italic">系统将自动调整配货单大小以适应单页打印</p>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 预览与内容 */}
       {!showInput && orders.length > 0 && (
         <div className="py-12 px-6">
           <div className="max-w-[210mm] mx-auto mb-10 no-print flex items-center justify-between bg-white p-8 rounded-[2rem] shadow-xl border border-gray-50">
             <div>
               <h2 className="text-2xl font-black text-black">解析完成</h2>
-              <p className="text-gray-400 text-sm font-bold uppercase tracking-wider">Store Count: {orders.length}</p>
+              <p className="text-gray-400 text-sm font-bold uppercase tracking-wider">店铺总数: {orders.length}</p>
             </div>
             <div className="flex gap-4">
               <button onClick={reset} className="px-6 py-3 border-2 border-black rounded-2xl font-black text-sm hover:bg-black hover:text-white transition-all">重新上传</button>
               <button onClick={() => window.print()} className="px-6 py-3 bg-black text-white rounded-2xl font-black text-sm hover:bg-gray-800 transition-all shadow-lg flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                打印配货单 (不含目录)
+                打印 (不含目录)
               </button>
             </div>
           </div>
 
           <div id="pdf-content" className="flex flex-col gap-10">
-            {/* 目录页 - 仅在网页预览和导出 PDF 时显示，打印时通过 no-print 隐藏 */}
             <div 
               id="summary-page"
               className="max-w-[210mm] mx-auto bg-white p-[20mm] shadow-2xl print:shadow-none order-page no-print"
@@ -233,12 +230,11 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* 店铺配货单页 */}
             {orders.map((order) => (
               <div 
                 key={order.posCode} 
                 id={`order-page-${order.posCode}`}
-                className="max-w-[210mm] mx-auto bg-white p-[15mm] sm:p-[20mm] print:p-0 shadow-2xl print:shadow-none order-page"
+                className="max-w-[210mm] mx-auto bg-white p-[15mm] sm:p-[20mm] print:p-[10mm] shadow-2xl print:shadow-none order-page"
                 style={{ width: '210mm', minHeight: '297mm' }}
               >
                 <PrintHeader 
@@ -247,21 +243,20 @@ const App: React.FC = () => {
                   level={order.level} 
                   fixtureType={order.fixtureType} 
                 />
-                <div className="mt-[-2px]">
+                <div className="mt-[-2px] flex-grow">
                    <OrderTable items={order.items} />
                 </div>
               </div>
             ))}
           </div>
 
-          {/* 底部功能栏 */}
           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex gap-4 no-print z-50">
             <button
               onClick={generatePDF}
               className="px-10 py-5 bg-black text-white rounded-[2rem] font-black text-sm shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:scale-110 transition-all flex items-center gap-3 active:scale-95 border-2 border-black"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              导出高清 PDF (含目录)
+              保存高清PDF (单页不截断)
             </button>
             <button
               onClick={generateImages}

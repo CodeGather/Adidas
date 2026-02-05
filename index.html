@@ -12,17 +12,40 @@
     <style>
         @media print {
             .no-print { display: none !important; }
-            .page-break { page-break-after: always; }
-            body { background-color: white !important; padding: 0 !important; }
-            .order-page { box-shadow: none !important; border: none !important; margin: 0 !important; width: 100% !important; padding: 10mm !important; }
+            body { background-color: white !important; padding: 0 !important; margin: 0 !important; }
+            .order-page { 
+                box-shadow: none !important; 
+                border: none !important; 
+                margin: 0 !important; 
+                width: 210mm !important; 
+                height: 297mm !important;
+                padding: 10mm !important; 
+                padding-top: 5mm !important;
+                page-break-after: always !important; 
+                page-break-inside: avoid !important; /* 核心：防止内部截断 */
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            /* 针对超长表格的自动缩放尝试（部分浏览器支持） */
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
         }
-        @page { size: A4; margin: 0; }
+        @page { 
+            size: A4; 
+            margin: 0; 
+        }
         
         /* 防止捕获时的阴影导致画布空白 */
         .is-capturing .shadow-2xl, .is-capturing .shadow-lg { box-shadow: none !important; }
         
-        /* 隐藏打印时的滚动条 */
+        /* 隐藏滚动条 */
         ::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        /* 预览态保持 A4 比例 */
+        .order-page {
+            transition: transform 0.2s ease;
+        }
     </style>
 <script type="importmap">
 {
